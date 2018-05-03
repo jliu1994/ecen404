@@ -1,0 +1,189 @@
+#include "msp430g2553.h"
+
+
+
+unsigned int Sensor1, Sensor2, Sensor3, Sensor4, Sensor5, Sensor6, count;       // ADC RESULT VARIABLES
+
+void Read_Value( int A );               // Read ADC values
+void UART_OutUDec( unsigned long n );   // Convert result to ASCII decimals
+void UART_output( char data );          // Output UART data
+
+
+
+int main( void )
+{
+
+    WDTCTL = (WDTPW | WDTHOLD);       // Stop WDT
+
+if( CALBC1_1MHZ == 0xFF )               // If calibration constant erased
+    {
+        while( 1 );                         // Do not load, trap CPU!!
+    }
+
+    DCOCTL  = 0;                            // Select lowest DCOx and MODx settings
+    BCSCTL1   = CALBC1_1MHZ;              // Set DCO
+    DCOCTL  =   CALDCO_1MHZ;
+
+    P1SEL   =   (BIT1 | BIT2);              // P1.1 = RXD, P1.2 = TXD
+    P1SEL2  =   (BIT1 | BIT2);              // P1.1 = RXD, P1.2 = TXD
+
+    UCA0CTL1    =   UCSWRST;                // USCI reset
+    UCA0CTL1 |= UCSSEL_2;                 // SMCLK
+    UCA0BR0 = 104;                      // 1MHz 9600
+    UCA0BR1 = 0;                        // 1MHz 9600
+    UCA0MCTL = UCBRS0;                   // Modulation UCBRSx = 1
+    UCA0CTL1 &= ~UCSWRST;               // Release USCI from reset
+IE2   |= UCA0RXIE;                 // Enable USCI_A0 RX interrupt
+
+while(1)
+    {
+    count = 1;
+    Read_Value(1);                    // Setup for ADC P1.0
+    Read_Value(2);                    // Setup for ADC P1.3
+    Read_Value(3);                    // Setup for ADC P1.4
+    Read_Value(4);                    // Setup for ADC P1.5
+    Read_Value(6);                    // Setup for ADC P1.7
+    Read_Value(5);                    // Setup for ADC P1.6
+
+
+    //add in temp conversion
+
+    UART_OutUDec(Sensor1);            // TX Sensor1
+    UART_output(0x09);              // TAB
+    //UART_output(0x0A);              // NEW LINE
+    //__delay_cycles(100000);
+
+    UART_OutUDec(Sensor2);              // TX Sensor2
+    UART_output(0x09);              // TAB
+    //UART_output(0x0A);              // NEW LINE
+    //__delay_cycles(100000);
+
+    UART_OutUDec(Sensor3);               // TX Sensor3
+    UART_output(0x09);                  // TAB
+    //UART_output(0x0A);              // NEW LINE
+    //__delay_cycles(100000);
+
+    UART_OutUDec(Sensor4);               // TX Sensor4
+    UART_output(0x09);                  // TAB
+    //UART_output(0x0A);              // NEW LINE
+    //__delay_cycles(100000);
+
+    UART_OutUDec(Sensor6);               // TX Sensor6
+    UART_output(0x09);                  // TAB
+    //UART_output(0x0A);              // NEW LINE
+    //__delay_cycles(100000);
+
+    UART_OutUDec(Sensor5);               // TX Sensor5
+    UART_output(0x09);                  // TAB
+    //UART_output(0x0A);              // NEW LINE
+    //__delay_cycles(100000);
+
+
+    UART_output(0x0D);                  //Carriage
+    UART_output(0x0A);              // Vertical Tab
+
+    }
+}
+
+
+
+void Read_Value( int A )
+{
+    ADC10CTL0 = 0x00; // Stop ADC
+
+    if( A == 1 )
+    {
+        ADC10CTL1 = INCH_0 | ADC10SSEL_3; // Input Channel A0 and SMCLK
+        ADC10AE0 = 0x01;                    // Enable analog input for p1.0
+        }
+
+
+
+    if( A == 2 )
+    {
+        ADC10CTL1 = INCH_3 | ADC10SSEL_3;       // Input Channel A3 and SMCLK
+        ADC10AE0 = 0x08;                        // Enable analog input for p1.3
+        }
+
+    if( A == 3 )
+    {
+        ADC10CTL1 = INCH_4 | ADC10SSEL_3;   // Input Channel A1 and SMCLK
+        ADC10AE0 = 0x10;                    // Enable analog input for p1.4
+        }
+
+    if( A == 4 )
+    {
+        ADC10CTL1 = INCH_5 | ADC10SSEL_3;   // Input Channel A1 and SMCLK
+        ADC10AE0 = 0x20;                    // Enable analog input for p1.5
+        }
+
+    if( A == 5 )
+    {
+        ADC10CTL1 = INCH_6 | ADC10SSEL_3;   // Input Channel A1 and SMCLK
+        ADC10AE0 = 0x40;                    // Enable analog input for p1.6
+        }
+
+    if( A == 6 )
+    {
+        ADC10CTL1 = INCH_7 | ADC10SSEL_3;   // Input Channel A1 and SMCLK
+        ADC10AE0 = 0x80;                    // Enable analog input for p1.7
+        }
+
+    ADC10CTL0 = ADC10ON | ENC;              // Turn on ADC and Enable Conversion
+    ADC10CTL0 = ADC10CTL0 | ADC10SC;        // Start conversion
+
+    while( ADC10CTL1 & ADC10BUSY )  // Wait until conversion is complete
+        {
+
+        }
+
+    if( A == 1 )
+    {
+        Sensor1 = ADC10MEM - 450;         // ADC VALUE Sensor1
+        }
+    if( A == 2 )
+    {
+        Sensor2 = ADC10MEM - 450;          // ADC VALUE Sensor2
+        }
+
+    if( A == 3 )
+    {
+        Sensor3 = ADC10MEM - 450;          // ADC VALUE Sensor3
+        }
+
+    if( A == 4 )
+    {
+        Sensor4 = ADC10MEM - 450;          // ADC VALUE Sensor4
+        }
+
+    if( A == 5 )
+    {
+        Sensor5 = ADC10MEM - 450;          // ADC VALUE Sensor5
+        }
+
+    if( A == 6 )
+    {
+        Sensor6 = ADC10MEM - 450;          // ADC VALUE Sensor6
+        }
+}
+
+void UART_OutUDec( unsigned long n )
+{
+    //UART_output(count + '0');
+    //UART_output(0x20);
+    UART_output( (n / 1000) + '0' );
+    n %= 1000;
+    UART_output( (n / 100) + '0' );
+    n %= 100;
+    UART_output( (n / 10) + '0' );
+    UART_output( (n % 10) + '0' );
+    count++;
+}
+
+
+
+void UART_output( char data )
+{
+    while( !(IFG2 & UCA0TXIFG) );
+    UCA0TXBUF = data;
+}
